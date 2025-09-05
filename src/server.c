@@ -1,5 +1,11 @@
 #include "server.h"
 
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+#include "handler.h"
+
 void send_http_response(int client_socket, int status_code, const char* content_type, 
                        const char* body, size_t body_length) {
     char header[512];
@@ -24,4 +30,19 @@ void send_http_response(int client_socket, int status_code, const char* content_
     if (body && body_length > 0) {
         send(client_socket, body, body_length, 0);
     }
+}
+
+void* client_thread(void* arg) {
+    client_info_t* client_info = (client_info_t*)arg;
+    
+    /*printf("Neue Verbindung von Client [Thread: %lu]\n", pthread_self());*/
+    
+    handle_request(client_info->client_socket);
+    
+    close(client_info->client_socket);
+    free(client_info);
+    
+    /*printf("Client-Verbindung geschlossen [Thread: %lu]\n", pthread_self());*/
+    
+    return NULL;
 }

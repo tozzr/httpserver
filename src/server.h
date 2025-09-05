@@ -20,4 +20,6 @@ typedef struct {
 void send_http_response(int client_socket, int status_code, const char* content_type, 
                        const char* body, size_t body_length);
 
+void* client_thread(void* arg);
+
 #endif

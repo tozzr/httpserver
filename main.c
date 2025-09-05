@@ -15,97 +15,9 @@
 #include "src/file_io.h"
 #include "src/string_utils.h"
 #include "src/server.h"
+#include "src/handler.h"
 
 int server_running = 1;
-
-void handle_request(int client_socket) {
-    char buffer[BUFFER_SIZE];
-    char method[16], path[256], version[16];
-    char* file_content;
-    size_t file_size;
-    int bytes_received;
-    
-    bytes_received = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
-    if (bytes_received <= 0) {
-        return;
-    }
-    
-    buffer[bytes_received] = '\0';
-    
-    if (sscanf(buffer, "%15s %255s %15s", method, path, version) != 3) {
-        send_http_response(client_socket, 400, "text/plain", "Bad Request", 11);
-        return;
-    }
-    
-    if (strcmp(method, "GET") != 0) {
-        send_http_response(client_socket, 405, "text/plain", "Method Not Allowed", 18);
-        return;
-    }
-    
-    char log_msg[512];
-    snprintf(log_msg, sizeof(log_msg), "%s", path);
-    logger(log_msg);
-
-    if (strcmp(path, "/") == 0) {
-        strcpy(path, "index.html");
-    }
-    
-    if (path[0] == '/') {
-        memmove(path, path + 1, strlen(path));
-    }
-
-    char dest[256] = "";
-    if (strncmp(path, "static", 6) != 0) {
-        strcpy(dest, "templates/");
-    }
-
-    strcat(dest, path);
-    
-    file_content = read_file(dest, &file_size);
-    if (!file_content) {
-        /* 404 Error senden */
-        const char* error_msg = "<!DOCTYPE html>\n"
-                               "<html><head><title>404 Not Found</title></head>\n"
-                               "<body><h1>404 - File Not Found</h1>\n"
-                               "<p>The requested file was not found on this server.</p>\n"
-                               "</body></html>";
-        send_http_response(client_socket, 404, "text/html", error_msg, strlen(error_msg));
-        return;
-    }
-    
-    const char* content_type = "text/plain";
-    if (strstr(path, ".html") || strstr(path, ".htm")) {
-        content_type = "text/html";
-        file_content = str_replace(file_content, "{{ hello }}", "world again!");
-    } else if (strstr(path, ".css")) {
-        content_type = "text/css";
-    } else if (strstr(path, ".js")) {
-        content_type = "application/javascript";
-    } else if (strstr(path, ".png")) {
-        content_type = "image/png";
-    } else if (strstr(path, ".jpg") || strstr(path, ".jpeg")) {
-        content_type = "image/jpeg";
-    }
-
-    send_http_response(client_socket, 200, content_type, file_content, file_size);
-    
-    free(file_content);
-}
-
-void* client_thread(void* arg) {
-    client_info_t* client_info = (client_info_t*)arg;
-    
-    /*printf("Neue Verbindung von Client [Thread: %lu]\n", pthread_self());*/
-    
-    handle_request(client_info->client_socket);
-    
-    close(client_info->client_socket);
-    free(client_info);
-    
-    /*printf("Client-Verbindung geschlossen [Thread: %lu]\n", pthread_self());*/
-    
-    return NULL;
-}
 
 void signal_handler(int sig) {
     printf("server is about to exit...\n");
@@ -129,7 +41,6 @@ int main() {
         exit(1);
     }
     
-    /* Socket-Optionen setzen (Adresse wiederverwenden) */
     int opt = 1;
     if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
         perror("setsockopt failed");
@@ -137,21 +48,19 @@ int main() {
         exit(1);
     }
     
-    /* Server-Adresse konfigurieren */
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(PORT);
     
-    /* Socket binden */
     if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-        perror("Bind fehlgeschlagen");
+        perror("bind failed");
         close(server_socket);
         exit(1);
     }
     
     if (listen(server_socket, MAX_THREADS) < 0) {
-        perror("Listen fehlgeschlagen");
+        perror("listen fehlgeschlagen");
         close(server_socket);
         exit(1);
     }
