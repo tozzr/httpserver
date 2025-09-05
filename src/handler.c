@@ -7,6 +7,8 @@
 #include "file_io.h"
 #include "logger.h"
 
+#define BUFFER_SIZE 1024
+
 void handle_request(int client_socket) {
     char buffer[BUFFER_SIZE];
     char method[16], path[256], version[16];
