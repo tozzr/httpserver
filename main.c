@@ -12,8 +12,9 @@
 #include <string.h>
 #include <time.h>
 
-#include "src/logger.c"
-#include "src/file_io.c"
+#include "src/logger.h"
+#include "src/file_io.h"
+#include "src/string_utils.h"
 
 #define PORT 8080
 #define BUFFER_SIZE 1024
@@ -134,6 +135,8 @@ void handle_request(int client_socket) {
         content_type = "image/jpeg";
     }
     
+    file_content = str_replace(file_content, "{{ hello }}", "world again!");
+
     /* Erfolgreiche Response senden */
     send_http_response(client_socket, 200, content_type, file_content, file_size);
     

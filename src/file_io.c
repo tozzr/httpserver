@@ -1,4 +1,6 @@
-#include <stdio.h>
+#include "file_io.h"
+
+#include <stdlib.h>
 
 char* read_file(const char* filename, size_t* file_size) {
     FILE* file;
@@ -10,7 +12,6 @@ char* read_file(const char* filename, size_t* file_size) {
         return NULL;
     }
     
-    /* Dateigröße ermitteln */
     fseek(file, 0, SEEK_END);
     length = ftell(file);
     fseek(file, 0, SEEK_SET);
@@ -20,14 +21,12 @@ char* read_file(const char* filename, size_t* file_size) {
         return NULL;
     }
     
-    /* Speicher allokieren */
     buffer = malloc(length + 1);
     if (!buffer) {
         fclose(file);
         return NULL;
     }
     
-    /* Datei lesen */
     *file_size = fread(buffer, 1, length, file);
     buffer[*file_size] = '\0';
     
