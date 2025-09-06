@@ -1,6 +1,7 @@
 #include "server.h"
 
 #include <stdlib.h>
+#include <signal.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -9,6 +10,10 @@
 #include "logger.h"
 
 #define MAX_THREADS 10
+
+void handle_static(const char* directory) {
+    logger("Static file handler set.");
+}
 
 void send_http_response(int client_socket, int status_code, const char* content_type, 
                        const char* body, size_t body_length) {
@@ -139,4 +144,14 @@ int start_server(int port) {
     printf("server exited.");
     
     return 0;
+}
+
+server_t* new_server() {
+    server_t* server = malloc(sizeof(server_t));
+    if (!server) {
+        return NULL;
+    }
+    server->start = start_server;
+    server->handle_static = handle_static;
+    return server;
 }

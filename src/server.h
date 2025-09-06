@@ -6,6 +6,11 @@
 #include <string.h>
 
 typedef struct {
+    int (*start)(int port);
+    void (*handle_static)(const char* directory);
+ } server_t;
+
+typedef struct {
     int socket;
     int running;
 } server_info;
@@ -14,6 +19,8 @@ typedef struct {
     int client_socket;
     struct sockaddr_in client_addr;
 } client_info_t;
+
+server_t* new_server();
 
 int start_server(int port);
 
